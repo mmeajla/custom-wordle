@@ -3,126 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Wordle: DAVUD</title>
+    <title>Custom Wordle</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f8f8f8;
-        }
-        h1 {
-            color: #333;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(5, 50px);
-            gap: 5px;
+            display: flex;
             justify-content: center;
-            margin-top: 20px;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
         }
-        .cell {
+
+        .game-container {
+            text-align: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 5px;
+            margin-top: 20px;
+            justify-items: center;
+        }
+
+        .board div {
             width: 50px;
             height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ddd;
             font-size: 24px;
             font-weight: bold;
-            text-transform: uppercase;
-            text-align: center;
-            line-height: 50px;
-            background-color: white;
-            border: 2px solid #ccc;
+            border-radius: 5px;
         }
-        .correct { background-color: #6aaa64; color: white; } /* Green */
-        .present { background-color: #c9b458; color: white; } /* Yellow */
-        .absent { background-color: #787c7e; color: white; } /* Gray */
-        input {
+
+        .correct {
+            background-color: green;
+        }
+
+        .wrong-position {
+            background-color: yellow;
+        }
+
+        .incorrect {
+            background-color: gray;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-gap: 5px;
             margin-top: 20px;
-            font-size: 20px;
-            text-transform: uppercase;
-            text-align: center;
-            width: 120px;
+            justify-items: center;
         }
-        button {
-            margin-left: 10px;
+
+        .keyboard button {
+            width: 30px;
+            height: 30px;
             font-size: 16px;
-            padding: 5px 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #ccc;
             cursor: pointer;
+        }
+
+        .keyboard button:disabled {
+            background-color: lightgray;
         }
     </style>
 </head>
 <body>
+    <div class="game-container">
+        <h1>Custom Wordle</h1>
+        <div class="board" id="board">
+            <!-- Empty board will be populated here -->
+        </div>
 
-    <h1>Wordle: Guess the 5-letter word</h1>
-    <div id="grid-container"></div>
-    <input type="text" id="guess" maxlength="5">
-    <button onclick="checkGuess()">Enter</button>
-    <p id="message"></p>
+        <div class="keyboard" id="keyboard">
+            <!-- Keyboard buttons will be populated here -->
+        </div>
+    </div>
 
     <script>
-        const secretWord = "DAVUD";
-        let attempts = 0;
-        const maxAttempts = 6;
-        const gridContainer = document.getElementById("grid-container");
+        const wordToGuess = "DAVUD";
+        let currentGuess = [];
+        let guesses = [];
+        let currentRow = 0;
+        let gameOver = false;
 
-        function createGrid() {
-            for (let i = 0; i < maxAttempts; i++) {
-                let row = document.createElement("div");
-                row.className = "grid";
-                for (let j = 0; j < 5; j++) {
-                    let cell = document.createElement("div");
-                    cell.className = "cell";
-                    row.appendChild(cell);
+        // Create board
+        const board = document.getElementById("board");
+        for (let i = 0; i < 6; i++) {
+            let row = [];
+            for (let j = 0; j < 5; j++) {
+                let cell = document.createElement("div");
+                row.push(cell);
+                board.appendChild(cell);
+            }
+            guesses.push(row);
+        }
+
+        // Create keyboard
+        const keyboard = document.getElementById("keyboard");
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        letters.forEach(letter => {
+            const button = document.createElement("button");
+            button.textContent = letter;
+            button.onclick = () => handleKeyPress(letter);
+            keyboard.appendChild(button);
+        });
+
+        const enterButton = document.createElement("button");
+        enterButton.textContent = "Enter";
+        enterButton.onclick = handleEnter;
+        keyboard.appendChild(enterButton);
+
+        const backspaceButton = document.createElement("button");
+        backspaceButton.textContent = "Backspace";
+        backspaceButton.onclick = handleBackspace;
+        keyboard.appendChild(backspaceButton);
+
+        function handleKeyPress(letter) {
+            if (currentGuess.length < 5 && !gameOver) {
+                currentGuess.push(letter);
+                guesses[currentRow][currentGuess.length - 1].textContent = letter;
+            }
+        }
+
+        function handleBackspace() {
+            if (currentGuess.length > 0 && !gameOver) {
+                currentGuess.pop();
+                guesses[currentRow][currentGuess.length].textContent = "";
+            }
+        }
+
+        function handleEnter() {
+            if (currentGuess.length === 5) {
+                checkGuess();
+                currentRow++;
+                currentGuess = [];
+                if (currentRow === 6) {
+                    gameOver = true;
+                    alert("Game Over! The word was " + wordToGuess);
                 }
-                gridContainer.appendChild(row);
+            } else {
+                alert("Guess must be 5 letters!");
             }
         }
 
         function checkGuess() {
-            if (attempts >= maxAttempts) return;
-            
-            let guessInput = document.getElementById("guess");
-            let guess = guessInput.value.toUpperCase().trim();
-            if (guess.length !== 5) return alert("Word must be 5 letters!");
-            
-            let row = document.getElementsByClassName("grid")[attempts];
-            let usedLetters = secretWord.split("");
+            const guess = currentGuess.join("");
+            const row = guesses[currentRow];
 
             for (let i = 0; i < 5; i++) {
-                let cell = row.children[i];
-                cell.textContent = guess[i];
-
-                if (guess[i] === secretWord[i]) {
-                    cell.classList.add("correct");
-                    usedLetters[i] = null;
+                if (guess[i] === wordToGuess[i]) {
+                    row[i].classList.add("correct");
+                } else if (wordToGuess.includes(guess[i])) {
+                    row[i].classList.add("wrong-position");
+                } else {
+                    row[i].classList.add("incorrect");
                 }
             }
 
-            for (let i = 0; i < 5; i++) {
-                let cell = row.children[i];
-
-                if (!cell.classList.contains("correct")) {
-                    let index = usedLetters.indexOf(guess[i]);
-                    if (index !== -1) {
-                        cell.classList.add("present");
-                        usedLetters[index] = null;
-                    } else {
-                        cell.classList.add("absent");
-                    }
-                }
-            }
-
-            attempts++;
-            guessInput.value = "";
-
-            if (guess === secretWord) {
-                document.getElementById("message").textContent = "🎉 You got it!";
-                guessInput.disabled = true;
-            } else if (attempts >= maxAttempts) {
-                document.getElementById("message").textContent = `❌ The word was: ${secretWord}`;
+            if (guess === wordToGuess) {
+                gameOver = true;
+                alert("You win! The word was " + wordToGuess);
             }
         }
-
-        createGrid();
     </script>
-
 </body>
 </html>
